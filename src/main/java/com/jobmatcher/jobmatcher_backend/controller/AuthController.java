@@ -5,6 +5,8 @@ import com.jobmatcher.jobmatcher_backend.dto.LoginResponse;
 import com.jobmatcher.jobmatcher_backend.dto.RegisterRequest;
 import com.jobmatcher.jobmatcher_backend.model.User;
 import com.jobmatcher.jobmatcher_backend.service.AuthService;
+import com.jobmatcher.jobmatcher_backend.dto.ForgotPasswordRequest;
+import com.jobmatcher.jobmatcher_backend.dto.ResetPasswordRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -64,7 +66,42 @@ public class AuthController {
         }
     }
 
+@PostMapping("/forgot-password")
+public ResponseEntity<?> forgotPassword(
+        @RequestBody ForgotPasswordRequest request) {
 
+    try {
+        authService.forgotPassword(request.getEmail());
+
+        return ResponseEntity.ok(
+                Map.of("message", "Password reset link sent to your email")
+        );
+
+    } catch (Exception e) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", e.getMessage()));
+    }
+}
+
+@PostMapping("/reset-password")
+public ResponseEntity<?> resetPassword(
+        @RequestBody ResetPasswordRequest request) {
+
+    try {
+        authService.resetPassword(
+                request.getToken(),
+                request.getNewPassword()
+        );
+
+        return ResponseEntity.ok(
+                Map.of("message", "Password reset successful")
+        );
+
+    } catch (Exception e) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", e.getMessage()));
+    }
+}
 
 
 }

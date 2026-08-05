@@ -11,6 +11,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 
 @Slf4j
 @Service
@@ -100,4 +103,43 @@ public class AuthService {
 
         throw new RuntimeException("Invalid credentials");
     }
+    public void forgotPassword(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("No account found with this email"));
+
+        String token = UUID.randomUUID().toString();
+
+        user.setResetToken(token);
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
+
+        userRepository.save(user);
+
+        String resetLink =
+                "http://localhost:3000/reset-password?token=" + token;
+
+        emailNotificationService.sendForgotPasswordNotification(
+                user.getEmail(),
+                user.getUsername() != null ? user.getUsername() : user.getEmail(),
+                resetLink
+        );
+    }
+public void resetPassword(String token, String newPassword) {
+
+    User user = userRepository.findByResetToken(token)
+            .orElseThrow(() -> new RuntimeException("Invalid reset token"));
+
+    if (user.getResetTokenExpiry() == null ||
+            user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+
+        throw new RuntimeException("Reset token has expired");
+    }
+
+    user.setPassword(passwordEncoder.encode(newPassword));
+
+    user.setResetToken(null);
+    user.setResetTokenExpiry(null);
+
+    userRepository.save(user);
+}
 }

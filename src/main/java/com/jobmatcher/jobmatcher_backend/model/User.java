@@ -43,4 +43,10 @@ public class User {
 
     private String profileImageUrl;
     private String profileImageFileName;
+
+   @Column(name = "reset_token")
+private String resetToken;
+
+@Column(name = "reset_token_expiry")
+private LocalDateTime resetTokenExpiry;
 }
