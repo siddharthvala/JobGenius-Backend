@@ -1,50 +1,55 @@
 package com.jobmatcher.jobmatcher_backend.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    @Value("${RESEND_API_KEY}")
+    private String resendApiKey;
 
     @Value("${app.mail.from}")
     private String fromAddress;
 
-    @Value("${app.mail.from-name}")
-    private String fromName;
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    /**
-     * Send an HTML email asynchronously.
-     * Failures are caught and logged — never propagated to caller.
-     */
-    @Async
     public void sendHtmlEmail(String toEmail, String subject, String htmlBody) {
+
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromAddress, fromName);
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true); // true = HTML
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(resendApiKey);
 
-            mailSender.send(message);
-            log.info("Email sent → [{}] subject='{}'" , toEmail, subject);
+            Map<String, Object> body = Map.of(
+                    "from", fromAddress,
+                    "to", new String[]{toEmail},
+                    "subject", subject,
+                    "html", htmlBody
+            );
 
-        } catch (MessagingException e) {
-            log.error("Email delivery failed → [{}] subject='{}' reason={}", toEmail, subject, e.getMessage());
+            HttpEntity<Map<String, Object>> request =
+                    new HttpEntity<>(body, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    "https://api.resend.com/emails",
+                    request,
+                    String.class
+            );
+
+            log.info("Resend response: {}", response.getBody());
+
         } catch (Exception e) {
-            log.error("Unexpected email error → [{}] reason={}", toEmail, e.getMessage());
+            log.error("Resend email failed: {}", e.getMessage());
         }
     }
 }
