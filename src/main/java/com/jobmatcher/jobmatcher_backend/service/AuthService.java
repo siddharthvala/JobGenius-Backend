@@ -5,6 +5,7 @@ import com.jobmatcher.jobmatcher_backend.dto.LoginResponse;
 import com.jobmatcher.jobmatcher_backend.model.User;
 import com.jobmatcher.jobmatcher_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -18,6 +19,9 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class AuthService {
+
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
 
     @Autowired
     private UserRepository userRepository;
@@ -116,7 +120,7 @@ public class AuthService {
         userRepository.save(user);
 
         String resetLink =
-                "http://localhost:3000/reset-password?token=" + token;
+        frontendUrl + "/reset-password?token=" + token;
 
         emailNotificationService.sendForgotPasswordNotification(
                 user.getEmail(),
